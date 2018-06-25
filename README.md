@@ -9,3 +9,7 @@
 
 
 #### 项目地址：  [url](http://www.jibahui.com)
+
+## 项目的安装  
+1、cnpm i 安装本地依赖包  
+2、npm run dev启动本地服务器：默认开启8080端口
