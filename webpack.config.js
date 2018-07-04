@@ -72,16 +72,8 @@ module.exports = {
     overlay: true,
     host:'0.0.0.0',
     proxy:{
-      '/nima':{
-        target:'http://127.0.0.1:3000',
-        changeOrigin:true
-      },
-      '/ting':{
-        target:'http://tingapi.ting.baidu.com/v1/restserver',
-        changeOrigin:true
-      },
       '/api':{
-        target:'http://www.jibahui.com:3000',
+        target:'http://www.longxiaxiao.com:3000',
         pathRewrite:{'^/api':'/'},
         changeOrigin:true
       },
