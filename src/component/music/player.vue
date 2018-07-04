@@ -157,7 +157,6 @@
                         if(i>6){
                             this.iscroll.scrollToElement(oparr[i-5]);
                         }else if(i<6){
-                            console.log(9999);
                             this.iscroll.scrollToElement(oparr[0]);
                         }
                         break;
