@@ -1,6 +1,6 @@
 <template>
     <div class="m_detail">
-        <h3 class="clust">{{detail.nm}}</h3>
+        <h3 class="clust"><mu-icon @click="$router.go(-1)" value="arrow_back" color="#fff"></mu-icon>{{detail.nm}}</h3>
         <div class="infod" >
             <div class="coverI" :style="{'background-image':coverImg}"></div>
             <div class="lef">
@@ -19,7 +19,7 @@
                     </template>
                 </p>
                 <p>{{detail.cat}}
-                    <span v-if="detail.version.indexOf('imax')!=-1">3D IMAX</span>
+                    <span v-if="detail.version.indexOf('imax')!=-1&&detail.version.indexOf('v3d')!=-1">3D IMAX</span>
                     <span v-else-if="detail.version.indexOf('v3d')!=-1">3D</span>
                 </p>
                 <p>{{detail.src}}/{{detail.dur}}分钟</p>
@@ -36,18 +36,18 @@
             <div class="swicr">
                 <ul class="wrapper" ref="coverM">
                     <li class="video" @click="playVideo" v-if="detail.videoImg">
-                        <img :src="detail.videoImg.replace('/w.h/','/')+'@250w_140h_1e_1c.webp'" alt="" style="width:125px">
+                        <img :src="detail.videoImg.replace('/w.h/','/')+'@250w_140h_1e_1c'" alt="" style="width:125px">
                     </li>
                     <li v-for="(item,i) in detail.photos" :key="i">
-                        <img :src="item.replace('/w.h/','/')+'@180w_140h_1e_1c.webp'" alt="">
+                        <img :src="item.replace('/w.h/','/')+'@180w_140h_1e_1c'" alt="">
                     </li>
                 </ul>
             </div>
             <div></div>
         </div>
         <div class="video1" v-show="showVideo">
-            <i class="close" @click="closeVideo">X</i>
-            <video :src="detail.videourl" controls ref="video"></video>
+            <video :src="detail.videourl" controls ref="video" @click.stop></video>
+            <mu-icon value="close" color="#fff" @click="closeVideo"></mu-icon>
         </div>
         <div class="line"></div>
         <div class="common">
@@ -130,6 +130,7 @@
                     scrollX:true,
                     click:true,
                     mouseWheel:true,
+                    eventPassthrough:true
                 });
             },
         },
@@ -166,18 +167,25 @@
     }
     .video1{
         position: fixed;
+        display: flex;
+        flex-direction: column;
         width:100%;
         height:100%;
         background: rgba(0, 0, 0, .5);
         top:0;
         left:0;
+        z-index: 2;
+        i{
+            flex:0.1;
+            text-align: center;
+        }
     }
     .close{
         display:block;
         height:12px;
         width:12px;
         position: absolute;
-        top:12px;
+        top:36px;
         left:12px;
         font-style: normal;
         color:#fff;
@@ -199,6 +207,13 @@
         font-weight: 500;
         font-size:16px;
         text-align: center;
+        position: relative;
+        i{
+            position: absolute;
+            left:12px;
+            top:0;
+            line-height: 48px;
+        }
     }
     .infod{
         height:188px;

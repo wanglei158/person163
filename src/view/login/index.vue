@@ -94,8 +94,8 @@
                     acode:'',
                 },
                 loForm:{
-                    count:'18557545114',
-                    pwd:'123456'
+                    count:'',
+                    pwd:''
                 },
                 acounterr:'',
                 mailerr:'',

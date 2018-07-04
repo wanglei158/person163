@@ -85,7 +85,7 @@ export const  store = new Vuex.Store({
 			return state.cityID;
 		},
 		getCityName:(state)=>{
-			return state.cityName;
+			return state.cityName||'杭州';
 		}
 	},
 	mutations:{

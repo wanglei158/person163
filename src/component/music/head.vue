@@ -20,7 +20,7 @@
             }
         },
         computed:{
-            ...mapGetters(['getUserInfo','gethideMcontroll']),
+            ...mapGetters(['gethideMcontroll']),
         },
         watch:{
             $route(to,from){
@@ -59,9 +59,6 @@
             }
         },
         mounted(){
-            this.getUserInfo.then((data)=>{
-                this.userI = data;
-            });
             this.getInit();
         }
     }

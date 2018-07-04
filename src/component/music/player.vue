@@ -3,10 +3,24 @@
         <div class="tainer">
             <div class="tite">{{name}}</div>
             <mu-icon value="arrow_back" @click="close" color="#fff" left></mu-icon>
-            <audio :src="playURI" autoplay  ref="audio" @timeupdate="getCurtime"></audio>
-            <div class="container" id="lrccontain"></div>
+            <audio :src="playURI"  ref="audio" @timeupdate="getCurtime"></audio>
+            <div id="image-round">
+                <mu-icon :value="playing?'pause_circle_outline':'play_circle_outline'"  @click="playing=!playing" color="#fff"></mu-icon>
+                <div class="round-image" >
+                    <div class="son"  :style="{backgroundImage:poster}"></div>
+                </div>
+            </div>
         </div>
-        <img :src="poster" alt="" class="poster">
+        <div class="lrc-Ontent">
+            <div class="wrapper1q">
+                <p :class="{active:targetIdx==i}" v-for="(item,i) in tempArr" :key="i">{{item.text}}</p>
+            </div>
+            <p v-if="nolyric">暂无歌词</p>
+        </div>
+        <div class="poster">
+            <div class="album-cover" :style="{backgroundImage:poster}"></div>
+            <div class="cover-mask"></div>
+        </div>
         <div class="controler">
             <div class="aslide">
                 <span>{{currentTime}}</span>
@@ -16,28 +30,6 @@
                 :max="10000"
                 v-model="currentTime1"></mu-slider>
                 <span>{{allTime}}</span>
-            </div>
-            <div class="handle">
-                <mu-icon :value="pauseOrstart" @click="pause" color="#ccc" left></mu-icon>
-                <mu-icon value="add_circle_outline" color="#ccc" @click="addP"></mu-icon>
-            </div>
-        </div>
-        <!-- 添加单歌单列表 -->
-        <div class="plusPanelq" v-show="!panel_hide">
-            <div class="plusPanel">
-                <p class="yut">添加到歌单<span @click="panel_hide=true">X</span></p>
-                <div class="list">
-                    <ul class="wrapper" ref="tbh">
-                        <li v-for="(item,i) in playList" @click="addListen(item)" :key="i" v-if="!item.subscribed">
-                            <img :src="item.coverImgUrl" alt="">
-                            <div class="injo">
-                                <p v-if="i==0">喜欢的音乐</p>
-                                <p v-else>{{item.name}}</p>
-                                <p>{{item.trackCount}}首</p>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
             </div>
         </div>
     </div>
@@ -51,9 +43,8 @@
                 curH:'',
                 playURI:'',
                 currentSongId:null,
-                poster:'',
+                poster:'url(http://s3.music.126.net/m/s/img/disc-ip6.png)',
                 name:'',
-                pauseOrstart:'pause_circle_outline',
                 currentTime:'00:00',
                 currentTime1:0,
                 allTime:'',
@@ -61,53 +52,49 @@
                 lyricObj:'',//歌词,
                 timeC:[],
                 tempArr:[],
-                timer3:null,
-                playList:[],//歌单列表,
-                panel_hide:true,
+                targetIdx:null,//定位当前高亮歌词的行 的下标,
+                nolyric:false,//判断当前歌曲是否有歌词,
+                playing:false
             }
         },
         computed:{
             ...mapGetters(['getMorder']),
         },
-        methods:{
-            addP(){
-                this.getMorder.then((data)=>{
-                    this.playList = data.playlist;
-                    this.panel_hide = false;
-                    let num = 0;
-                    data.playlist.map((item)=>{
-                        if(!item.subscribed){
-                            num++;
-                        }
-                    });
-                    this.$refs.tbh.style.height = num*52+'px';
-                    setTimeout(()=>{
-                        this.iscroll.refresh();
-                    },500)
-                });
-                
-            },
-            addListen(it){
-                if(!this.songId) return;
-                this.$http.get('/api/playlist/tracks?op=add&pid='+it.id+'&tracks='+this.songId).then((data)=>{
-                    let res = data.data;
-                    console.log(res);
-                    if(res.code==200){
-                        this.$toast.top('收藏成功');
-                        this.panel_hide = true;
+        watch:{
+            playing(newV){
+                let domRound = document.querySelector('.son');
+                let fround = document.querySelector('.round-image');
+                this.$nextTick(()=>{
+                    if(newV){
+                        domRound.classList.add('animate');
+                        this.$refs.audio.play();
                     }else{
-                        this.$toast.top(res.code);
+                        var iTranfrom = getComputedStyle(domRound).transform;
+                        var cTranfrom = getComputedStyle(fround).transform;
+                        fround.style.transform = cTranfrom=='none'?iTranfrom:iTranfrom.concat(cTranfrom);
+                        domRound.classList.remove('animate');
+                        this.$refs.audio.pause();
                     }
                 })
-            },
+                
+            }
+        },
+        methods:{
             pause(){//暂停播放
                 let cd = this.$refs.audio.paused;
+                let domRound = document.querySelector('.son');
+                let fround = document.querySelector('.round-image');
                 if(cd){
                     this.$refs.audio.play();
                     this.pauseOrstart = 'pause_circle_outline';
+                    domRound.classList.add('animate');
                 }else{
                     this.$refs.audio.pause();
                     this.pauseOrstart = 'play_circle_outline';
+                    var iTranfrom = getComputedStyle(domRound).transform;
+                    var cTranfrom = getComputedStyle(fround).transform;
+                    fround.style.transform = cTranfrom=='none'?iTranfrom:iTranfrom.concat(cTranfrom);
+                    domRound.classList.remove('animate');
                 }
             },
             close(){
@@ -131,14 +118,18 @@
                     this.playURI = res.data[0].url;
                 });
                 this.$refs.audio.load();
+                this.playing = false;
                 this.$http.get('/api/album?id='+data.albumId).then((data)=>{//获取音乐封面
                     let res = data.data;
-                    this.poster = res.album.picUrl;
+                    this.poster = 'url('+res.album.picUrl+')';
                 });
                 this.$http.get('/api/lyric?id='+data.id).then((data)=>{
                     let res = data.data;
+                    if(res.nolyric){
+                        this.nolyric = true;
+                        return ;
+                    }
                     this.lyricObj = this.parseLyric(res.lrc.lyric);
-                    
                 });
             },
             getCurtime(){
@@ -151,29 +142,36 @@
                 this.currentTime = this.resloveTime(currTime);
                 this.currentTime1 = parseInt((currTime/duration)*100*100);
                 this.$emit('conn',this.currentTime1);
-                if(obj.ended){
-                    this.pauseOrstart = 'stop';
-                    this.timeC = new Array();
+                if(obj.ended){//播放完毕
+                    this.playing = false;
+                }
+                if(!this.nolyric)this.matchLine(currTime.toFixed(0));
+            },
+            matchLine(num){
+                let conDom = document.getElementsByClassName('wrapper1q')[0];
+                let oparr = conDom.children;
+                let tarCon = this.tempArr;
+                for(let i=0,l=tarCon.length;i<l;i++){
+                    if(tarCon[i].offset == num){
+                        this.targetIdx = i;
+                        if(i>6){
+                            this.iscroll.scrollToElement(oparr[i-5]);
+                        }
+                        break;
+                    }
                 }
             },
-            resloveTime(sec){
+            resloveTime(sec){//转化成时分秒
                 let min = parseInt(sec/60)<10?'0'+parseInt(sec/60):parseInt(sec/60);
                 let sec1 = parseInt(sec%60)<10?'0'+parseInt(sec%60):parseInt(sec%60);
                 return min+':'+sec1;
             },
-            CtCurrentTime(value){
+            CtCurrentTime(value){//时间轴 与时分秒转换比例
                 let rate = value/10000;
                 let obj = this.$refs.audio;
                 obj.currentTime = obj.duration*rate;
             },
-            matchLyc(sec){//匹配歌词
-                let curLrc = this.lyricObj[sec];
-                let arr = this.timeC;
-                if(curLrc!=undefined&&curLrc!=''&&curLrc!=this.timeC[arr.length-1]){
-                    this.timeC.push(curLrc);
-                }
-            },
-            parseLyric(lrc) {
+            parseLyric(lrc) {//解析歌词成对象
                 var lyrics = lrc.split("\n");
                 var lrcObj = {};
                 for(var i=0;i<lyrics.length;i++){
@@ -189,84 +187,27 @@
                         lrcObj[time] = clause;
                     }
                 }
-                clearInterval(this.timer3);
                 this.tempArr = [];
-                document.getElementById('lrccontain').scrollTop = 0;
                 for(var i in lrcObj){
                     if(lrcObj[i]!=''){
                         this.tempArr.push({offset:i,text:lrcObj[i]});
                     }
                 }
-                this.jkl(this.tempArr);
+                this.$nextTick(()=>{
+                    let tDom = document.getElementsByClassName('wrapper1q')[0];
+                    tDom.style.height = tDom.clientHeight+120+'px';//多撑开120px;
+                    this.iscroll.refresh();
+                })
                 return lrcObj;
-            },
-            jkl(arr){
-                var dom = document.getElementById('lrccontain');
-                var str = '';
-                for (var i = 0; i < arr.length; i++) {
-                    str +=`<p>${arr[i].text}</p>`
-                };
-                dom.innerHTML = str;
-                this._go(0);
-            },
-            _go(_lineno){
-                let arr = this.tempArr;
-                let __eul = document.getElementById('lrccontain');
-                var _time;
-                if (_lineno === 0) {
-                    _time = arr[_lineno].offset;
-                } else {
-                    _time = arr[_lineno].offset - arr[_lineno-1].offset;
-                }
-                this.timer3 = setTimeout(this._go.bind(window,_lineno+1), _time*1000);
-                let _ep = __eul.children[_lineno];
-                try{
-                    if (_lineno > 0) {
-                        __eul.children[_lineno-2].setAttribute("class", "");
-                    }
-                    let _ep2 = __eul.children[_lineno-1];
-                    _ep2.setAttribute("class", "z-crt");
-                }catch(e){
-
-                }
-                
-                var __freq = 30; // 滚动频率（ms）
-                var __fraction = 2/5;
-                
-
-                var _scrollTop;
-                if (_ep.offsetTop < __eul.clientHeight*.4){
-                    _scrollTop = 0;
-                } else if (_ep.offsetTop > (__eul.scrollHeight - __eul.clientHeight*(1-.4))){
-                    _scrollTop = __eul.scrollHeight - __eul.clientHeight;
-                    __eul.scrollTop = _scrollTop;
-                } else {
-                    _scrollTop = _ep.offsetTop - __eul.clientHeight*.4;
-                    __eul.scrollTop = _scrollTop;
-                }
-            },
-            __scroll(_crt, _dst, _step){
-                let __eul = document.getElementById('lrccontain');
-                if(Math.abs(_crt - _dst) < _step){
-                    return;
-                }
-                if(_crt < _dst){
-                    __eul.scrollTop += _step;
-                    _crt += _step;
-                } else {
-                    __eul.scrollTop -= _step;
-                    _crt -= _step;
-                }
-                setTimeout(this.__scroll.bind(window, _crt, _dst, _step), 30);
             },
             getIscroll(){
                 let IScroll = require('iscroll');
-                this.iscroll = new IScroll('.list',{
+                this.iscroll = new IScroll('.lrc-Ontent',{
                     scrollY:true,
                     click:true,
-                    mouseWheel:true,
+                    mouseWheel:true, 
                 });
-            },
+            }
         },
         mounted(){
             this.getIscroll();
@@ -275,58 +216,131 @@
         },
         beforeDestroy(){
             this.$bus.off('openPlay',this.getSongId);
-            clearInterval(this.timer3);
         }
     }
 </script>
 
-<style >
+<style lang="scss">
     .tainer{
         position: relative;
-        height:360px;
         overflow: hidden;
+        #image-round{
+            margin: 0 auto;
+            margin-top: 36px;
+            width:188px;
+            height:188px;
+            position: relative;
+            text-align: center;
+            i{
+                position: relative;
+                z-index: 2;
+                font-size:56px;
+                top:50%;
+                transform: translate(0,-50%);
+            }
+        }
+        .round-image{
+            position: absolute;
+            left: 0;
+            top:0;
+            width:100%;
+            height:100%;
+        }
+        .son{
+            width:100%;
+            height:100%;
+            border-radius:50%;
+            background-size:cover;
+        }
+        .animate{
+            animation: rotate 24s linear infinite;
+        }
     }
-    .container{
-        position: absolute;
-        width:100%;
-        bottom:0;
-        height: 84%;
-        color:#9e9e9e;
-        overflow-y: hidden;
+    @keyframes rotate {
+        from{
+            transform: rotate(0deg);
+        }
+        to{
+            transform: rotate(360deg);
+        }
     }
-    .container p{
+    .lrc-Ontent{
+        color:rgba(255, 255, 255, 0.6);
         text-align: center;
-        line-height: 28px;
-        transition:0.5s all ;
-    }
-    .container p.z-crt{
-        color:#2196f3;
+        font-size:12px;
+        line-height: 26px;
+        height: 200px;
+        overflow: hidden;
+        margin-top:12px;
+        p{
+            transition: 0.2s all;
+        }
+        p.active{
+            transform:translateZ(4px);
+            font-size:18px;
+            color:#fff;
+        }
     }
     .tite{
         line-height: 24px;
         text-align: center;
-        color:#e00c0c;
+        color:rgba(255,255,255,.8);
     }
     .poster{
         position: absolute;
         top:0;
         left:0;
         width:100%;
+        height:100%;
         z-index:-1;
-        /* filter: blur(2px); */
+        .album-cover{
+            position: absolute;
+            top:0;
+            left:0;
+            z-index:1;
+            width:100%;
+            height:100%;
+            background-size:cover;
+            background-position:center;
+            filter: blur(1.2rem);
+        }
+        .cover-mask{
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 3;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,.4);
+        }
     }
     .controler{
         position: absolute;
-        bottom: 36px;
+        bottom: 0;
         width: 90%;
-    }
-    .controler .handle{
-        background: rgba(0,0,0,.6);
-        padding: 0 12px;
     }
     .aslide{
         display: flex;
+        color:rgba(255, 255, 255, .72);
         justify-content: space-between;
+        &>span{
+            padding-top:2px;
+        }
+        .mu-slider-fill, .mu-slider-track{
+            height:1px;
+        }
+        .mu-slider-thumb{
+            width:6px;
+            height:6px;
+            background-color:#fff; 
+        }
+        .mu-slider-fill{
+            background-color:#fff; 
+        }
+        .mu-slider-track{
+            background-color: rgba(255,255,255,.2);
+        }
     }
     .mu-slider{
         width:72%;

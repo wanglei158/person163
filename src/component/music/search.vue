@@ -31,7 +31,7 @@
                         <div class="seniority">{{i+1}}</div>
                         <div  class="info" @click="playMusic(item)" >
                             <p>{{item.name}}</p>
-                            <p >{{item.artists[0].name}}--{{item.album.name}}</p>
+                            <p><template v-for="(ite) in item.artists">{{ite.name}}  </template></p>
                             <span class="u-hmsprt sgich_ply" data-reactid="34"></span>
                         </div>
                     </li>
@@ -300,7 +300,7 @@
         text-indent:6px;
     }
     .panelx{
-        height:356px;
+        height:276px;
         overflow: hidden;
         position: relative;
     }
